@@ -37,7 +37,6 @@ public class PhotoListFragment extends Fragment {
         super.onCreate(savedInstanceState);
         context = this.getActivity();
         new FetchSharkPhotosTask().execute();
-        Log.d("OnCreate", "This finished");
 
     }
 
@@ -45,7 +44,6 @@ public class PhotoListFragment extends Fragment {
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
         // Inflate the layout for this fragment
-        Log.d("OnCreateView", "This started");
         View view = inflater.inflate(R.layout.fragment_photo_list, container, false);
 
         recyclerView = (RecyclerView) view.findViewById(R.id.recycler_view);
@@ -53,12 +51,9 @@ public class PhotoListFragment extends Fragment {
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this.getActivity(), 3);
         recyclerView.setLayoutManager(gridLayoutManager);
 
-
-        Log.d("OnCreateView", "This finished");
-
         return view;
     }
-
+    //Async task to get the list of ids and urls for the thumbnails to be displayed
     public class FetchSharkPhotosTask extends AsyncTask<Void, Void, ArrayList<Photo>> {
 
         private final String LOG_TAG = FetchSharkPhotosTask.class.getSimpleName();
@@ -96,7 +91,7 @@ public class PhotoListFragment extends Fragment {
                         .appendQueryParameter(EXTRAS, "url_t")
                         //.appendQueryParameter(EXTRAS, "url_c")
                         //.appendQueryParameter(EXTRAS, "url_l")
-                        //.appendQueryParameter(EXTRAS, "url_o")
+                        //.appendQueryParameter(EXTRAS, "url_o")                // we just need the thumbnails so getting only thumbnails
                         .build();
 
                 URL url = new URL(builtUri.toString());
@@ -165,7 +160,6 @@ public class PhotoListFragment extends Fragment {
             if (photos != null) {
                 adapter = new RecyclerViewAdapter(context,photos);
                 recyclerView.setAdapter(adapter);
-                Log.d("OnPsotExecute","This finished");
             }
         }
     }

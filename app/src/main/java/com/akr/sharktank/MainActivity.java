@@ -42,7 +42,7 @@ public class MainActivity extends ActionBarActivity {
         mVisible = true;
         mControlsView = findViewById(R.id.fullscreen_content_controls);
         mContentView = findViewById(R.id.fullscreen_content);
-        final Intent intent = new Intent(this, PhotoList.class);
+        final Intent intent = new Intent(this, PhotoListActivity.class);
 
         // Set up the user interaction to manually show or hide the system UI.
         mContentView.setOnClickListener(new View.OnClickListener() {
