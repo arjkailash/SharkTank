@@ -2,6 +2,8 @@ package com.akr.sharktank;
 
 import android.app.Fragment;
 import android.content.Context;
+import android.graphics.Bitmap;
+import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
@@ -13,6 +15,7 @@ import android.view.View;
 import org.json.JSONException;
 import android.support.v7.widget.RecyclerView;
 import android.view.ViewGroup;
+import android.widget.ImageView;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -20,39 +23,102 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.Key;
 import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
 
 
 public class PhotoListFragment extends Fragment {
-    RecyclerViewAdapter adapter;
-    Context context;
-    RecyclerView recyclerView;
+    private RecyclerViewAdapter adapter;
+    private Context context;
+    private HashMap<String,Bitmap> hashMap;
+    private ArrayList<Photo> photoList;
+    private RecyclerView recyclerView;
     public PhotoListFragment() {
         // Required empty public constructor
+    }
+
+    @Override
+    public void onActivityCreated(Bundle savedInstanceState) {
+        super.onActivityCreated(savedInstanceState);
     }
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         context = this.getActivity();
-        new FetchSharkPhotosTask().execute();
+
 
     }
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
                              Bundle savedInstanceState) {
+        Log.d("OnCreateView","This is called again");
         // Inflate the layout for this fragment
+        if(savedInstanceState != null){
+            Bundle bundle1 = savedInstanceState.getBundle("HashMap");
+            if(bundle1 != null){
+                hashMap = new HashMap<String,Bitmap>();
+                Set<String> keys = bundle1.keySet();
+                for (String key : keys) {
+                    hashMap.put(key,(Bitmap) bundle1.get(key));
+                }
+            }
+            Bundle bundle2 = savedInstanceState.getBundle("Photos");
+            if(bundle2 != null){
+                photoList = new ArrayList<Photo>();
+                Set<String> keys = bundle2.keySet();
+                for (String key : keys) {
+                    photoList.add(Integer.valueOf(key),(Photo)bundle2.get(key));
+                }
+            }
+        }
+
         View view = inflater.inflate(R.layout.fragment_photo_list, container, false);
 
         recyclerView = (RecyclerView) view.findViewById(R.id.recycler_view);
-
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this.getActivity(), 3);
         recyclerView.setLayoutManager(gridLayoutManager);
-
+        if(adapter == null){
+            if(hashMap != null && photoList != null){
+                adapter = new RecyclerViewAdapter(hashMap,photoList,context);
+                recyclerView.setAdapter(adapter);
+            }else {
+                new FetchSharkPhotosTask().execute();
+            }
+        }else {
+            recyclerView.setAdapter(adapter);  //when fragment returns from backstack only views are destroyed so resetting the adapter
+        }
         return view;
     }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+    }
+
+    @Override
+    public void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        Bundle photoBundle = new Bundle();
+        Iterator<Map.Entry<String,Bitmap>> iter = adapter.hashMap.entrySet().iterator();
+        while(iter.hasNext()){
+            Map.Entry<String ,Bitmap> entry = iter.next();
+            photoBundle.putParcelable(entry.getKey(),entry.getValue());
+        }
+        outState.putBundle("HashMap", photoBundle);
+        Bundle Photos = new Bundle();
+        for(Photo p : adapter.photos){
+            Photos.putParcelable(String.valueOf(adapter.photos.indexOf(p)),p);
+        }
+        outState.putBundle("Photos", Photos);
+    }
+
     //Async task to get the list of ids and urls for the thumbnails to be displayed
     public class FetchSharkPhotosTask extends AsyncTask<Void, Void, ArrayList<Photo>> {
 
@@ -158,6 +224,7 @@ public class PhotoListFragment extends Fragment {
         @Override
         protected void onPostExecute(ArrayList<Photo> photos) {
             if (photos != null) {
+                photoList = photos;
                 adapter = new RecyclerViewAdapter(context,photos);
                 recyclerView.setAdapter(adapter);
             }

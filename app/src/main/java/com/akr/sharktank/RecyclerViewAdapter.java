@@ -21,12 +21,19 @@ import java.util.List;
  */
 public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder> {
 
-    private ArrayList<Photo> photos;
+    protected ArrayList<Photo> photos;
     private Context context;
     //using hash map to cache bitmaps. (Not a great idea when there are large number of images, but we have just 100 small thumbnails.(found by playing with apis)
     //This is done to improve performance. executing an async task everytime we need an image is not a good idea.
-    private HashMap<String,Bitmap> hashMap = new HashMap<String,Bitmap>();
+    protected HashMap<String,Bitmap> hashMap = new HashMap<String,Bitmap>();
+
     public RecyclerViewAdapter(){}
+
+    public RecyclerViewAdapter(HashMap<String,Bitmap> hashMap,ArrayList<Photo> photos, Context context ){
+        this.hashMap = hashMap;
+        this.photos = photos;
+        this.context = context;
+    }
 
     public RecyclerViewAdapter(Context context, ArrayList<Photo> photos){
         this.photos = photos;
@@ -37,7 +44,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
     public RecyclerViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(context).inflate(R.layout.row,parent,false);
 
-        RecyclerViewHolder recyclerViewHolder = new RecyclerViewHolder(view);
+        RecyclerViewHolder recyclerViewHolder = new RecyclerViewHolder(view , context);
         return recyclerViewHolder;
     }
 

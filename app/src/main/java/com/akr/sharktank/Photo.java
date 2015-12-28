@@ -1,15 +1,19 @@
 package com.akr.sharktank;
 
+import android.os.Parcel;
+import android.os.Parcelable;
+
 /**
  * Created by ARJUNRKAILASH on 12/24/2015.
  */
-public class Photo {
+public class Photo implements Parcelable{
     private String url_c;
     private String url_t;
     private String url_o;
     private String id;
     private String title;
 
+    public Photo(){}
     public String getTitle() {
         return title;
     }
@@ -49,4 +53,36 @@ public class Photo {
     public void setUrl_c(String url_c) {
         this.url_c = url_c;
     }
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeString(url_c);
+        dest.writeString(url_o);
+        dest.writeString(url_t);
+        dest.writeString(id);
+        dest.writeString(title);
+    }
+
+    private Photo(Parcel in){
+        url_c = in.readString();
+        url_o = in.readString();
+        url_t = in.readString();
+        id = in.readString();
+        title = in.readString();
+    }
+    public static final Parcelable.Creator<Photo> CREATOR
+            = new Parcelable.Creator<Photo>() {
+        public Photo createFromParcel(Parcel in) {
+            return new Photo(in);
+        }
+
+        public Photo[] newArray(int size) {
+            return new Photo[size];
+        }
+    };
 }
