@@ -1,20 +1,32 @@
 package com.akr.sharktank;
 
 import android.app.Activity;
+import android.app.DownloadManager;
+import android.content.BroadcastReceiver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.os.Environment;
 import android.support.v4.app.Fragment;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+import android.view.ViewTreeObserver;
+import android.webkit.DownloadListener;
+import android.widget.Button;
 import android.widget.ImageView;
 import android.support.v7.widget.CardView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
+import android.widget.Toast;
 
 import org.json.JSONException;
 
@@ -37,10 +49,13 @@ public class PhotoFragment extends Fragment {
     private String bestUrlToDisplay;
     private Bitmap photoImage;
     private String photoDescription;
+    private String flickrUrl;
 
     private static final String PHOTOIMAGE = "PhotoImage";
     private static final String PHOTODESCRIPTION = "PhotoDescription";
     private static final String PHOTOBUNDLE = "PhotoBundle";
+    private static final String IMAGEHEIGHT = "ImageHeight";
+    private static final String IMAGEWEIGHT = "ImageWeight";
 
     TextView textView;
 
@@ -54,8 +69,8 @@ public class PhotoFragment extends Fragment {
     }
 
     @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
+    public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
+
         Bundle args = getArguments();
         photoID = args.getString(PhotoJsonParser.FLI_ID);
         url_t = args.getString(PhotoJsonParser.FLI_URL_T);
@@ -63,11 +78,15 @@ public class PhotoFragment extends Fragment {
         url_l = args.getString(PhotoJsonParser.FLI_URL_L);
         url_o = args.getString(PhotoJsonParser.FLI_URL_O);
         photoTitle = args.getString(PhotoJsonParser.FLI_TITLE);
+
         // Inflate the layout for this fragment
         View view = inflater.inflate(R.layout.fragment_photo, container, false);
-        ImageView imageView = (ImageView) view.findViewById(R.id.photoFullFrame);
+
+        final ImageView imageView = (ImageView) view.findViewById(R.id.photoFullFrame);
+
         textView = (TextView) view.findViewById(R.id.photoDescription);
         textView.setText(photoTitle);
+
         if(url_o != null){
             bestUrlToDisplay = url_o;
         }else if(url_l != null){
@@ -96,6 +115,56 @@ public class PhotoFragment extends Fragment {
         }else {
             new GetPhotoDetailsTask().execute(photoID);
         }
+
+        //buttons
+        final Button download = (Button) view.findViewById(R.id.button1);
+
+        download.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                DownloadManager downloadManager;
+                final long myDownloadReference;
+                downloadManager = (DownloadManager) PhotoFragment.this.getActivity().getSystemService(Context.DOWNLOAD_SERVICE);
+                Uri uri = Uri.parse(bestUrlToDisplay);
+                DownloadManager.Request request = new DownloadManager.Request(uri);
+                request.setDescription("Downloading image...");
+                request.setTitle(PhotoFragment.this.getActivity().getString(R.string.app_name));
+                request.setDestinationInExternalFilesDir(PhotoFragment.this.getActivity(), Environment.DIRECTORY_DOWNLOADS, photoID + ".jpg");
+                request.setVisibleInDownloadsUi(true);
+                myDownloadReference = downloadManager.enqueue(request);
+
+                BroadcastReceiver receiverDownloadComplete;
+                IntentFilter intentFilter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+                receiverDownloadComplete =  new BroadcastReceiver() {
+                    @Override
+                    public void onReceive(Context context, Intent intent) {
+                        Long reference = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID,-1);
+                        if (myDownloadReference == reference){
+
+                            CharSequence text = photoID + ".jpg" + " Downloaded!";
+                            int duration = Toast.LENGTH_SHORT;
+                            Toast toast = Toast.makeText(context, text, duration);
+                            toast.setGravity(Gravity.CENTER_VERTICAL, 0, 0);
+                            toast.show();
+                        }
+
+                    }
+                };
+                PhotoFragment.this.getActivity().registerReceiver(receiverDownloadComplete,intentFilter);
+            }
+        });
+
+        final Button openInFlickr = (Button) view.findViewById(R.id.button2);
+        openInFlickr.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                if(flickrUrl != null && !flickrUrl.isEmpty()) {
+                    Intent i = new Intent(Intent.ACTION_VIEW);
+                    i.setData(Uri.parse(flickrUrl));
+                    startActivity(i);
+                }
+            }
+        });
 
         return view;
     }
@@ -221,6 +290,8 @@ public class PhotoFragment extends Fragment {
             }
 
             try {
+                String jsonStringCopy = new String(photosJsonString);
+                flickrUrl = PhotoJsonParser.getFlickrUrlFromJson(jsonStringCopy);
                 return PhotoJsonParser.getPhotoDetailsFromJson(photosJsonString);
             } catch (JSONException e) {
                 Log.e(LOG_TAG, e.getMessage(), e);

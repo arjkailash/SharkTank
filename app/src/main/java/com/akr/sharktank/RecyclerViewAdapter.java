@@ -4,6 +4,7 @@ import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.graphics.Matrix;
 import android.os.AsyncTask;
 import android.support.v4.app.FragmentTransaction;
 import android.support.v7.widget.RecyclerView;
@@ -29,6 +30,8 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
     protected AdapterInterface buttonListener;
     protected ArrayList<Photo> photos;
     private Context context;
+    private int imageHeight;
+    private int imageWidth;
     //using hash map to cache bitmaps. (Not a great idea when there are large number of images, but we have just 100 small thumbnails.(found by playing with apis)
     //This is done to improve performance. executing an async task everytime we need an image is not a good idea.
     protected HashMap<String,Bitmap> hashMap = new HashMap<String,Bitmap>();
@@ -40,12 +43,16 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
         this.photos = photos;
         this.context = context;
         this.buttonListener = buttonListener;
+        this.imageHeight = (int) context.getResources().getDimension(R.dimen.thumbnail_height);
+        this.imageWidth = (int) context.getResources().getDimension(R.dimen.thumbnail_width);
     }
 
     public RecyclerViewAdapter(Context context, ArrayList<Photo> photos,AdapterInterface buttonListener){
         this.photos = photos;
         this.context = context;
         this.buttonListener = buttonListener;
+        this.imageHeight = (int) context.getResources().getDimension(R.dimen.thumbnail_height);
+        this.imageWidth = (int) context.getResources().getDimension(R.dimen.thumbnail_width);
     }
 
     @Override
@@ -103,7 +110,25 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
                 Log.e("Error", e.getMessage());
                 e.printStackTrace();
             }
-            return mIcon11;
+            //return mIcon11;
+            return getResizedBitmap(mIcon11,imageHeight,imageWidth);
+        }
+
+        public Bitmap getResizedBitmap(Bitmap bm, int newHeight, int newWidth) {
+            int width = bm.getWidth();
+            int height = bm.getHeight();
+            float scaleWidth = ((float) newWidth) / width;
+            float scaleHeight = ((float) newHeight) / height;
+            // CREATE A MATRIX FOR THE MANIPULATION
+            Matrix matrix = new Matrix();
+            // RESIZE THE BIT MAP
+            matrix.postScale(scaleWidth, scaleHeight);
+
+            // "RECREATE" THE NEW BITMAP
+            Bitmap resizedBitmap = Bitmap.createBitmap(bm, 0, 0, width, height,
+                    matrix, false);
+
+            return resizedBitmap;
         }
 
         protected void onPostExecute(Bitmap result) {

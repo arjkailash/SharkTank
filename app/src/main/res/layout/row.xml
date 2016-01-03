@@ -4,8 +4,8 @@
 
     <ImageView
         android:id="@+id/image_id"
-        android:layout_width="150dp"
-        android:layout_height="100dp"
+        android:layout_width="@dimen/thumbnail_width"
+        android:layout_height="@dimen/thumbnail_height"
         android:padding="5dp" />
 
 </LinearLayout>

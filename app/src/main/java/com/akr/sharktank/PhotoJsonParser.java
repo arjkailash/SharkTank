@@ -24,6 +24,8 @@ public class PhotoJsonParser {
     public static final String FLI_TITLE = "title";
     public static final String FLI_PHOTO_DESCRIPTION = "description";
     public static final String FLI_CONTENT = "_content";
+    public static final String FLI_URLS = "urls";
+    public static final String FLI_URL = "url";
 
     public static ArrayList<Photo> getPhotosFromJson(String photosJsonStr)
             throws JSONException {
@@ -73,10 +75,25 @@ public class PhotoJsonParser {
         JSONObject jsonObject = new JSONObject(photosJsonStr);
         JSONObject photo = jsonObject.getJSONObject(FLI_PHOTO);
 
-
-        // Get the JSON object representing the photo
         JSONObject description = photo.getJSONObject(FLI_PHOTO_DESCRIPTION);
         String content = description.getString(FLI_CONTENT);
+        return content;
+    }
+
+    public static String getFlickrUrlFromJson(String photosJsonStr)
+            throws JSONException {
+
+
+        JSONObject jsonObject = new JSONObject(photosJsonStr);
+        JSONObject photo = jsonObject.getJSONObject(FLI_PHOTO);
+
+        JSONObject urls = photo.getJSONObject(FLI_URLS);
+        JSONArray urlArray = urls.getJSONArray(FLI_URL);
+
+        String content = "";
+        if(urlArray.length()>0){
+            content = urlArray.getJSONObject(0).getString(FLI_CONTENT);
+        }
         return content;
     }
 
