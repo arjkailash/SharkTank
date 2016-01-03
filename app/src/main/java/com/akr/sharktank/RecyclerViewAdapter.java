@@ -1,9 +1,11 @@
 package com.akr.sharktank;
 
+import android.app.Activity;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.os.AsyncTask;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.widget.RecyclerView;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -21,6 +23,10 @@ import java.util.List;
  */
 public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder> {
 
+    public interface AdapterInterface{
+        public void imageClicked(String id,String url_t, String url_c, String url_l, String url_o, String photoTitle );
+    }
+    protected AdapterInterface buttonListener;
     protected ArrayList<Photo> photos;
     private Context context;
     //using hash map to cache bitmaps. (Not a great idea when there are large number of images, but we have just 100 small thumbnails.(found by playing with apis)
@@ -29,15 +35,17 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
 
     public RecyclerViewAdapter(){}
 
-    public RecyclerViewAdapter(HashMap<String,Bitmap> hashMap,ArrayList<Photo> photos, Context context ){
+    public RecyclerViewAdapter(HashMap<String,Bitmap> hashMap,ArrayList<Photo> photos, Context context,AdapterInterface buttonListener){
         this.hashMap = hashMap;
         this.photos = photos;
         this.context = context;
+        this.buttonListener = buttonListener;
     }
 
-    public RecyclerViewAdapter(Context context, ArrayList<Photo> photos){
+    public RecyclerViewAdapter(Context context, ArrayList<Photo> photos,AdapterInterface buttonListener){
         this.photos = photos;
         this.context = context;
+        this.buttonListener = buttonListener;
     }
 
     @Override
@@ -49,7 +57,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
     }
 
     @Override
-    public void onBindViewHolder(RecyclerViewHolder holder, int position) {
+    public void onBindViewHolder(RecyclerViewHolder holder, final int position) {
         //make async task to get image as a bitmap and set imageview as the bitmap.
         //check if already loaded and use from hash map
         if(hashMap.containsKey(photos.get(position).getUrl_t())){
@@ -57,6 +65,19 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
         }else {
             new SetImageTask(holder.imageView).execute(photos.get(position).getUrl_t());
         }
+
+        holder.imageView.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                //pass intent to fragment to launch a new fragment
+                buttonListener.imageClicked(photos.get(position).getId(),
+                        photos.get(position).getUrl_t(),
+                        photos.get(position).getUrl_c(),
+                        photos.get(position).getUrl_l(),
+                        photos.get(position).getUrl_o(),
+                        photos.get(position).getTitle());
+            }
+        });
     }
 
     @Override

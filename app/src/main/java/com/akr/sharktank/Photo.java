@@ -9,6 +9,7 @@ import android.os.Parcelable;
 public class Photo implements Parcelable{
     private String url_c;
     private String url_t;
+    private String url_l;
     private String url_o;
     private String id;
     private String title;
@@ -54,6 +55,14 @@ public class Photo implements Parcelable{
         this.url_c = url_c;
     }
 
+    public String getUrl_l() {
+        return url_l;
+    }
+
+    public void setUrl_l(String url_l) {
+        this.url_l = url_l;
+    }
+
     @Override
     public int describeContents() {
         return 0;
@@ -63,6 +72,7 @@ public class Photo implements Parcelable{
     public void writeToParcel(Parcel dest, int flags) {
         dest.writeString(url_c);
         dest.writeString(url_o);
+        dest.writeString(url_l);
         dest.writeString(url_t);
         dest.writeString(id);
         dest.writeString(title);
@@ -71,6 +81,7 @@ public class Photo implements Parcelable{
     private Photo(Parcel in){
         url_c = in.readString();
         url_o = in.readString();
+        url_l = in.readString();
         url_t = in.readString();
         id = in.readString();
         title = in.readString();
@@ -85,4 +96,5 @@ public class Photo implements Parcelable{
             return new Photo[size];
         }
     };
+
 }

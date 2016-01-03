@@ -1,12 +1,14 @@
 package com.akr.sharktank;
 
-import android.app.Fragment;
+import android.app.Activity;
+import android.support.v4.app.Fragment;
 import android.content.Context;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.v4.app.FragmentTransaction;
 import android.support.v7.widget.GridLayoutManager;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -32,7 +34,7 @@ import java.util.Map;
 import java.util.Set;
 
 
-public class PhotoListFragment extends Fragment {
+public class PhotoListFragment extends Fragment implements RecyclerViewAdapter.AdapterInterface{
     private RecyclerViewAdapter adapter;
     private Context context;
     private HashMap<String,Bitmap> hashMap;
@@ -86,7 +88,7 @@ public class PhotoListFragment extends Fragment {
         recyclerView.setLayoutManager(gridLayoutManager);
         if(adapter == null){
             if(hashMap != null && photoList != null){
-                adapter = new RecyclerViewAdapter(hashMap,photoList,context);
+                adapter = new RecyclerViewAdapter(hashMap,photoList,context,this);
                 recyclerView.setAdapter(adapter);
             }else {
                 new FetchSharkPhotosTask().execute();
@@ -105,18 +107,39 @@ public class PhotoListFragment extends Fragment {
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
-        Bundle photoBundle = new Bundle();
-        Iterator<Map.Entry<String,Bitmap>> iter = adapter.hashMap.entrySet().iterator();
-        while(iter.hasNext()){
-            Map.Entry<String ,Bitmap> entry = iter.next();
-            photoBundle.putParcelable(entry.getKey(),entry.getValue());
+        if(adapter != null) {
+            Bundle photoBundle = new Bundle();
+            Iterator<Map.Entry<String, Bitmap>> iter = adapter.hashMap.entrySet().iterator();
+
+            while (iter.hasNext()) {
+                Map.Entry<String, Bitmap> entry = iter.next();
+                photoBundle.putParcelable(entry.getKey(), entry.getValue());
+            }
+            outState.putBundle("HashMap", photoBundle);
+            Bundle Photos = new Bundle();
+            for (Photo p : adapter.photos) {
+                Photos.putParcelable(String.valueOf(adapter.photos.indexOf(p)), p);
+            }
+            outState.putBundle("Photos", Photos);
         }
-        outState.putBundle("HashMap", photoBundle);
-        Bundle Photos = new Bundle();
-        for(Photo p : adapter.photos){
-            Photos.putParcelable(String.valueOf(adapter.photos.indexOf(p)),p);
-        }
-        outState.putBundle("Photos", Photos);
+    }
+
+    @Override
+    public void imageClicked(String id,String url_t, String url_c, String url_l, String url_o, String photoTitle ) {
+        PhotoFragment photoFragment = new PhotoFragment();
+        Bundle args = new Bundle();
+        args.putString(PhotoJsonParser.FLI_ID,id);
+        args.putString(PhotoJsonParser.FLI_URL_T,url_t);
+        args.putString(PhotoJsonParser.FLI_URL_C,url_c);
+        args.putString(PhotoJsonParser.FLI_URL_L,url_l);
+        args.putString(PhotoJsonParser.FLI_URL_O,url_o);
+        args.putString(PhotoJsonParser.FLI_TITLE,photoTitle);
+        photoFragment.setArguments(args);
+        FragmentTransaction fragmentTransaction = getActivity().getSupportFragmentManager().beginTransaction();
+        fragmentTransaction.replace(R.id.photo_list_holder, photoFragment);
+        fragmentTransaction.addToBackStack(null);
+        fragmentTransaction.setTransition(FragmentTransaction.TRANSIT_FRAGMENT_FADE);
+        fragmentTransaction.commit();
     }
 
     //Async task to get the list of ids and urls for the thumbnails to be displayed
@@ -154,10 +177,7 @@ public class PhotoListFragment extends Fragment {
                         .appendQueryParameter(FORMAT, "json")
                         .appendQueryParameter(NOJSONCALLBACK, "1")
                         .appendQueryParameter(PAGE, "1")
-                        .appendQueryParameter(EXTRAS, "url_t")
-                        //.appendQueryParameter(EXTRAS, "url_c")
-                        //.appendQueryParameter(EXTRAS, "url_l")
-                        //.appendQueryParameter(EXTRAS, "url_o")                // we just need the thumbnails so getting only thumbnails
+                        .appendQueryParameter(EXTRAS, "url_t,url_c,url_l,url_o")
                         .build();
 
                 URL url = new URL(builtUri.toString());
@@ -225,7 +245,7 @@ public class PhotoListFragment extends Fragment {
         protected void onPostExecute(ArrayList<Photo> photos) {
             if (photos != null) {
                 photoList = photos;
-                adapter = new RecyclerViewAdapter(context,photos);
+                adapter = new RecyclerViewAdapter(context,photos,PhotoListFragment.this);
                 recyclerView.setAdapter(adapter);
             }
         }
