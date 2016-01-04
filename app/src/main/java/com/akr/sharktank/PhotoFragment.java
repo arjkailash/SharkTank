@@ -98,7 +98,7 @@ public class PhotoFragment extends Fragment {
         }
         if(savedInstanceState != null){
             Bundle bundle = savedInstanceState.getBundle(PHOTOBUNDLE);
-            photoTitle = bundle.getString(PHOTODESCRIPTION);
+            photoDescription = bundle.getString(PHOTODESCRIPTION);
             photoImage = bundle.getParcelable(PHOTOIMAGE);
         }
 
