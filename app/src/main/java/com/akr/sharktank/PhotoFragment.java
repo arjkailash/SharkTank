@@ -55,8 +55,8 @@ public class PhotoFragment extends Fragment {
     private static final String PHOTOIMAGE = "PhotoImage";
     private static final String PHOTODESCRIPTION = "PhotoDescription";
     private static final String PHOTOBUNDLE = "PhotoBundle";
-    private static final String IMAGEHEIGHT = "ImageHeight";
-    private static final String IMAGEWEIGHT = "ImageWeight";
+    private static final String FLICKRURL = "FlickrURL";
+
 
     TextView textView;
 
@@ -101,6 +101,7 @@ public class PhotoFragment extends Fragment {
             Bundle bundle = savedInstanceState.getBundle(PHOTOBUNDLE);
             photoDescription = bundle.getString(PHOTODESCRIPTION);
             photoImage = bundle.getParcelable(PHOTOIMAGE);
+            flickrUrl = bundle.getString(FLICKRURL);
         }
 
         if(photoImage != null){
@@ -176,6 +177,7 @@ public class PhotoFragment extends Fragment {
         Bundle bundle = new Bundle();
         bundle.putParcelable(PHOTOIMAGE,photoImage);
         bundle.putString(PHOTODESCRIPTION, photoDescription);
+        bundle.putString(FLICKRURL,flickrUrl);
         outState.putBundle(PHOTOBUNDLE,bundle);
     }
 
