@@ -50,6 +50,7 @@ public class PhotoFragment extends Fragment {
     private Bitmap photoImage;
     private String photoDescription;
     private String flickrUrl;
+    private BroadcastReceiver receiverDownloadComplete;
 
     private static final String PHOTOIMAGE = "PhotoImage";
     private static final String PHOTODESCRIPTION = "PhotoDescription";
@@ -133,7 +134,7 @@ public class PhotoFragment extends Fragment {
                 request.setVisibleInDownloadsUi(true);
                 myDownloadReference = downloadManager.enqueue(request);
 
-                BroadcastReceiver receiverDownloadComplete;
+
                 IntentFilter intentFilter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
                 receiverDownloadComplete =  new BroadcastReceiver() {
                     @Override
@@ -176,6 +177,14 @@ public class PhotoFragment extends Fragment {
         bundle.putParcelable(PHOTOIMAGE,photoImage);
         bundle.putString(PHOTODESCRIPTION, photoDescription);
         outState.putBundle(PHOTOBUNDLE,bundle);
+    }
+
+    @Override
+    public void onPause() {
+        super.onPause();
+        if(receiverDownloadComplete!=null) {
+            PhotoFragment.this.getActivity().unregisterReceiver(receiverDownloadComplete);
+        }
     }
 
     private class SetImageTask extends AsyncTask<String, Void, Bitmap> {

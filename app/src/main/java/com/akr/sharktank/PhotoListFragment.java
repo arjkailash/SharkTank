@@ -9,6 +9,7 @@ import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.support.v4.app.FragmentTransaction;
+import android.support.v4.widget.SwipeRefreshLayout;
 import android.support.v7.widget.GridLayoutManager;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -40,6 +41,11 @@ public class PhotoListFragment extends Fragment implements RecyclerViewAdapter.A
     private HashMap<String,Bitmap> hashMap;
     private ArrayList<Photo> photoList;
     private RecyclerView recyclerView;
+    private FetchSharkPhotosTask fetchSharkPhotosTask;
+    SwipeRefreshLayout swipeRefreshLayout;
+    private final static String FLI_HASHMAP = "HashMap";
+    private final static String FLI_PHOTOLIST = "PhotoList";
+
     public PhotoListFragment() {
         // Required empty public constructor
     }
@@ -53,17 +59,10 @@ public class PhotoListFragment extends Fragment implements RecyclerViewAdapter.A
     public void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         context = this.getActivity();
-
-
-    }
-
-    @Override
-    public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        Log.d("OnCreateView","This is called again");
-        // Inflate the layout for this fragment
+        Log.d("OnCreate","This is called when fragment is recreated");
+        //if we are in photofragment and we rotate device
         if(savedInstanceState != null){
-            Bundle bundle1 = savedInstanceState.getBundle("HashMap");
+            Bundle bundle1 = savedInstanceState.getBundle(FLI_HASHMAP);
             if(bundle1 != null){
                 hashMap = new HashMap<String,Bitmap>();
                 Set<String> keys = bundle1.keySet();
@@ -71,7 +70,33 @@ public class PhotoListFragment extends Fragment implements RecyclerViewAdapter.A
                     hashMap.put(key,(Bitmap) bundle1.get(key));
                 }
             }
-            Bundle bundle2 = savedInstanceState.getBundle("Photos");
+            Bundle bundle2 = savedInstanceState.getBundle(FLI_PHOTOLIST);
+            if(bundle2 != null){
+                photoList = new ArrayList<Photo>();
+                Set<String> keys = bundle2.keySet();
+                for (String key : keys) {
+                    photoList.add(Integer.valueOf(key),(Photo)bundle2.get(key));
+                }
+            }
+        }
+
+    }
+
+    @Override
+    public View onCreateView(LayoutInflater inflater, ViewGroup container,
+                             Bundle savedInstanceState) {
+        Log.d("OnCreateView","This is called again");
+        // if we are just coming back from photofragment without rotating device
+        if(savedInstanceState != null && hashMap == null && photoList == null){
+            Bundle bundle1 = savedInstanceState.getBundle(FLI_HASHMAP);
+            if(bundle1 != null){
+                hashMap = new HashMap<String,Bitmap>();
+                Set<String> keys = bundle1.keySet();
+                for (String key : keys) {
+                    hashMap.put(key,(Bitmap) bundle1.get(key));
+                }
+            }
+            Bundle bundle2 = savedInstanceState.getBundle(FLI_PHOTOLIST);
             if(bundle2 != null){
                 photoList = new ArrayList<Photo>();
                 Set<String> keys = bundle2.keySet();
@@ -86,15 +111,35 @@ public class PhotoListFragment extends Fragment implements RecyclerViewAdapter.A
         recyclerView = (RecyclerView) view.findViewById(R.id.recycler_view);
         GridLayoutManager gridLayoutManager = new GridLayoutManager(this.getActivity(), 3);
         recyclerView.setLayoutManager(gridLayoutManager);
+
+        swipeRefreshLayout = (SwipeRefreshLayout) view.findViewById(R.id.swipe_refresh_layout);
+        swipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                if(adapter != null && adapter.hashMap != null){
+                    adapter.hashMap.clear();
+                    if(hashMap != null){
+                        hashMap.clear();            //for both hashmaps to be in sync
+                    }
+                }
+                if(fetchSharkPhotosTask != null){
+                    fetchSharkPhotosTask.cancel(true);   //cancel it if it is running
+                }
+                fetchSharkPhotosTask = new FetchSharkPhotosTask();
+                fetchSharkPhotosTask.execute();
+            }
+        });
+
         if(adapter == null){
-            if(hashMap != null && photoList != null){
+            if(hashMap != null && photoList != null){       //if we rotate device in photofragment adapter will be killed but we save hashmap and photolist
                 adapter = new RecyclerViewAdapter(hashMap,photoList,context,this);
                 recyclerView.setAdapter(adapter);
-            }else {
-                new FetchSharkPhotosTask().execute();
+            }else {// loading for the first time
+                fetchSharkPhotosTask = new FetchSharkPhotosTask();
+                fetchSharkPhotosTask.execute();
             }
-        }else {
-            recyclerView.setAdapter(adapter);  //when fragment returns from backstack only views are destroyed so resetting the adapter
+        }else {     //when fragment returns from backstack only views are destroyed so resetting the adapter
+            recyclerView.setAdapter(adapter);
         }
         return view;
     }
@@ -107,6 +152,7 @@ public class PhotoListFragment extends Fragment implements RecyclerViewAdapter.A
     @Override
     public void onSaveInstanceState(Bundle outState) {
         super.onSaveInstanceState(outState);
+        //rotating device while in the same fragment
         if(adapter != null) {
             Bundle photoBundle = new Bundle();
             Iterator<Map.Entry<String, Bitmap>> iter = adapter.hashMap.entrySet().iterator();
@@ -115,26 +161,44 @@ public class PhotoListFragment extends Fragment implements RecyclerViewAdapter.A
                 Map.Entry<String, Bitmap> entry = iter.next();
                 photoBundle.putParcelable(entry.getKey(), entry.getValue());
             }
-            outState.putBundle("HashMap", photoBundle);
+            outState.putBundle(FLI_HASHMAP, photoBundle);
             Bundle Photos = new Bundle();
             for (Photo p : adapter.photos) {
                 Photos.putParcelable(String.valueOf(adapter.photos.indexOf(p)), p);
             }
-            outState.putBundle("Photos", Photos);
+            outState.putBundle(FLI_PHOTOLIST, Photos);
+        }
+        //if we are in photofragment and we rotate device
+        if(adapter == null && hashMap!=null && photoList != null) {
+            Bundle photoBundle = new Bundle();
+            Iterator<Map.Entry<String, Bitmap>> iter = hashMap.entrySet().iterator();
+
+            while (iter.hasNext()) {
+                Map.Entry<String, Bitmap> entry = iter.next();
+                photoBundle.putParcelable(entry.getKey(), entry.getValue());
+            }
+            outState.putBundle(FLI_HASHMAP, photoBundle);
+            Bundle Photos = new Bundle();
+            for (Photo p : photoList) {
+                Photos.putParcelable(String.valueOf(photoList.indexOf(p)), p);
+            }
+            outState.putBundle(FLI_PHOTOLIST, Photos);
         }
     }
 
     @Override
-    public void imageClicked(String id,String url_t, String url_c, String url_l, String url_o, String photoTitle ) {
+    public void imageClicked(Photo p ) {
         PhotoFragment photoFragment = new PhotoFragment();
+
         Bundle args = new Bundle();
-        args.putString(PhotoJsonParser.FLI_ID,id);
-        args.putString(PhotoJsonParser.FLI_URL_T,url_t);
-        args.putString(PhotoJsonParser.FLI_URL_C,url_c);
-        args.putString(PhotoJsonParser.FLI_URL_L,url_l);
-        args.putString(PhotoJsonParser.FLI_URL_O,url_o);
-        args.putString(PhotoJsonParser.FLI_TITLE,photoTitle);
+        args.putString(PhotoJsonParser.FLI_ID,p.getId());
+        args.putString(PhotoJsonParser.FLI_URL_T,p.getUrl_t());
+        args.putString(PhotoJsonParser.FLI_URL_C,p.getUrl_c());
+        args.putString(PhotoJsonParser.FLI_URL_L,p.getUrl_l());
+        args.putString(PhotoJsonParser.FLI_URL_O,p.getUrl_o());
+        args.putString(PhotoJsonParser.FLI_TITLE,p.getTitle());
         photoFragment.setArguments(args);
+
         FragmentTransaction fragmentTransaction = getActivity().getSupportFragmentManager().beginTransaction();
         fragmentTransaction.replace(R.id.photo_list_holder, photoFragment);
         fragmentTransaction.addToBackStack(null);
@@ -181,8 +245,6 @@ public class PhotoListFragment extends Fragment implements RecyclerViewAdapter.A
                         .build();
 
                 URL url = new URL(builtUri.toString());
-                //url = new URL("https://api.flickr.com/services/rest/?method=flickr.photos.search&api_key=949e98778755d1982f537d56236bbb42&tags=shark&format=json&nojsoncallback=1&page=1&extras =url_t,url_c,url_l,url_o");
-                //Log.v(LOG_TAG,"Built URI: "+builtUri.toString());
 
                 // Create the request to Flickr, and open the connection
                 urlConnection = (HttpURLConnection) url.openConnection();
@@ -247,6 +309,9 @@ public class PhotoListFragment extends Fragment implements RecyclerViewAdapter.A
                 photoList = photos;
                 adapter = new RecyclerViewAdapter(context,photos,PhotoListFragment.this);
                 recyclerView.setAdapter(adapter);
+                if(swipeRefreshLayout.isRefreshing()){
+                    swipeRefreshLayout.setRefreshing(false);
+                }
             }
         }
     }

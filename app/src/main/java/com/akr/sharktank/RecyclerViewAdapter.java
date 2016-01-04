@@ -25,7 +25,7 @@ import java.util.List;
 public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder> {
 
     public interface AdapterInterface{
-        public void imageClicked(String id,String url_t, String url_c, String url_l, String url_o, String photoTitle );
+        public void imageClicked(Photo p);
     }
     protected AdapterInterface buttonListener;
     protected ArrayList<Photo> photos;
@@ -70,19 +70,15 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
         if(hashMap.containsKey(photos.get(position).getUrl_t())){
             holder.imageView.setImageBitmap(hashMap.get(photos.get(position).getUrl_t()));
         }else {
-            new SetImageTask(holder.imageView).execute(photos.get(position).getUrl_t());
+            holder.imageView.setImageResource(R.drawable.ic_place_holder);
+            new SetImageTask(position).execute(photos.get(position).getUrl_t());
         }
 
         holder.imageView.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 //pass intent to fragment to launch a new fragment
-                buttonListener.imageClicked(photos.get(position).getId(),
-                        photos.get(position).getUrl_t(),
-                        photos.get(position).getUrl_c(),
-                        photos.get(position).getUrl_l(),
-                        photos.get(position).getUrl_o(),
-                        photos.get(position).getTitle());
+                buttonListener.imageClicked(photos.get(position));
             }
         });
     }
@@ -93,10 +89,10 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
     }
 
     private class SetImageTask extends AsyncTask<String, Void, Bitmap> {
-        ImageView bmImage;
+        int position;
         String url;
-        public SetImageTask(ImageView bmImage) {
-            this.bmImage = bmImage;
+        public SetImageTask(int position) {
+            this.position = position;
         }
 
         protected Bitmap doInBackground(String... urls) {
@@ -110,11 +106,11 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
                 Log.e("Error", e.getMessage());
                 e.printStackTrace();
             }
-            //return mIcon11;
+
             return getResizedBitmap(mIcon11,imageHeight,imageWidth);
         }
 
-        public Bitmap getResizedBitmap(Bitmap bm, int newHeight, int newWidth) {
+        public Bitmap getResizedBitmap(Bitmap bm, int newHeight, int newWidth) { //resizing the image to fit thumbnail imageview
             int width = bm.getWidth();
             int height = bm.getHeight();
             float scaleWidth = ((float) newWidth) / width;
@@ -133,7 +129,7 @@ public class RecyclerViewAdapter extends RecyclerView.Adapter<RecyclerViewHolder
 
         protected void onPostExecute(Bitmap result) {
             hashMap.put(url,result);
-            bmImage.setImageBitmap(result);
+            notifyItemChanged(position);
         }
     }
 }
